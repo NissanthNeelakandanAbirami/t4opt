@@ -1,0 +1,175 @@
+"""Speed and latency testing for models."""
+
+import torch
+import time
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from typing import Dict, Any, Optional
+import numpy as np
+
+
+class SpeedTester:
+    """Tests model inference speed and latency."""
+    
+    def __init__(self, model_path: str, device: Optional[str] = None):
+        """
+        Initialize speed tester.
+        
+        Args:
+            model_path: Path to model
+            device: Device to use (auto-detected if None)
+        """
+        self.model_path = model_path
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        
+        print(f"Loading model from {model_path}")
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
+            device_map="auto" if self.device == "cuda" else None,
+            trust_remote_code=True
+        )
+        
+        if self.device == "cpu":
+            self.model = self.model.to(self.device)
+        
+        self.model.eval()
+        
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+    
+    def test_latency(
+        self,
+        num_runs: int = 10,
+        prompt: str = "The quick brown fox",
+        max_new_tokens: int = 50
+    ) -> Dict[str, Any]:
+        """
+        Test inference latency.
+        
+        Args:
+            num_runs: Number of runs for averaging
+            prompt: Test prompt
+            max_new_tokens: Maximum tokens to generate
+            
+        Returns:
+            Dictionary with latency results
+        """
+        print(f"Testing latency ({num_runs} runs)...")
+        
+        # Warmup
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+        with torch.no_grad():
+            _ = self.model.generate(**inputs, max_new_tokens=10)
+        
+        if self.device == "cuda":
+            torch.cuda.synchronize()
+        
+        # Actual timing
+        latencies = []
+        token_times = []
+        
+        for _ in range(num_runs):
+            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+            
+            if self.device == "cuda":
+                torch.cuda.synchronize()
+            
+            start_time = time.time()
+            
+            with torch.no_grad():
+                outputs = self.model.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=False
+                )
+            
+            if self.device == "cuda":
+                torch.cuda.synchronize()
+            
+            end_time = time.time()
+            
+            latency = end_time - start_time
+            num_generated = outputs.shape[1] - inputs["input_ids"].shape[1]
+            tokens_per_second = num_generated / latency if latency > 0 else 0
+            
+            latencies.append(latency)
+            token_times.append(tokens_per_second)
+        
+        return {
+            "avg_latency_ms": np.mean(latencies) * 1000,
+            "std_latency_ms": np.std(latencies) * 1000,
+            "min_latency_ms": np.min(latencies) * 1000,
+            "max_latency_ms": np.max(latencies) * 1000,
+            "avg_tokens_per_second": np.mean(token_times),
+            "std_tokens_per_second": np.std(token_times),
+            "device": self.device,
+            "num_runs": num_runs
+        }
+    
+    def test_throughput(
+        self,
+        batch_sizes: list = [1, 2, 4],
+        seq_length: int = 128,
+        num_runs: int = 5
+    ) -> Dict[str, Any]:
+        """
+        Test throughput for different batch sizes.
+        
+        Args:
+            batch_sizes: List of batch sizes to test
+            seq_length: Sequence length
+            num_runs: Number of runs per batch size
+            
+        Returns:
+            Dictionary with throughput results
+        """
+        print(f"Testing throughput for batch sizes: {batch_sizes}")
+        
+        results = {}
+        
+        for batch_size in batch_sizes:
+            try:
+                # Create dummy input
+                dummy_input = torch.randint(0, self.tokenizer.vocab_size, (batch_size, seq_length))
+                dummy_input = dummy_input.to(self.device)
+                
+                # Warmup
+                with torch.no_grad():
+                    _ = self.model(dummy_input)
+                
+                if self.device == "cuda":
+                    torch.cuda.synchronize()
+                
+                # Time forward pass
+                times = []
+                for _ in range(num_runs):
+                    if self.device == "cuda":
+                        torch.cuda.synchronize()
+                    
+                    start = time.time()
+                    with torch.no_grad():
+                        _ = self.model(dummy_input)
+                    
+                    if self.device == "cuda":
+                        torch.cuda.synchronize()
+                    
+                    times.append(time.time() - start)
+                
+                avg_time = np.mean(times)
+                throughput = (batch_size * seq_length) / avg_time if avg_time > 0 else 0
+                
+                results[batch_size] = {
+                    "avg_time_ms": avg_time * 1000,
+                    "throughput_tokens_per_second": throughput
+                }
+                
+            except RuntimeError as e:
+                if "out of memory" in str(e):
+                    results[batch_size] = {"error": "OOM"}
+                    torch.cuda.empty_cache()
+                else:
+                    raise e
+        
+        return results
+
