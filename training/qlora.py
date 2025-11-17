@@ -141,26 +141,39 @@ class QLoRATrainer:
         os.makedirs(self.config.output_dir, exist_ok=True)
         
         # Training arguments optimized for T4
-        training_args = TrainingArguments(
-            output_dir=self.config.output_dir,
-            per_device_train_batch_size=self.config.micro_batch_size,
-            gradient_accumulation_steps=self.config.gradient_accumulation_steps,
-            num_train_epochs=self.config.num_epochs,
-            learning_rate=self.config.learning_rate,
-            warmup_steps=self.config.warmup_steps,
-            fp16=self.config.fp16,
-            bf16=self.config.bf16,
-            logging_steps=self.config.logging_steps,
-            save_steps=self.config.save_steps,
-            eval_steps=self.config.eval_steps if eval_dataset else None,
-            evaluation_strategy="steps" if eval_dataset else "no",
-            save_total_limit=self.config.save_total_limit,
-            load_best_model_at_end=True if eval_dataset else False,
-            report_to="none",  # Disable wandb/tensorboard for Colab
-            optim="paged_adamw_8bit",  # Memory-efficient optimizer
-            max_grad_norm=0.3,
-            remove_unused_columns=False
-        )
+        # Check which parameter name is supported (eval_strategy in newer versions, evaluation_strategy in older)
+        import inspect
+        sig = inspect.signature(TrainingArguments.__init__)
+        eval_param_name = "eval_strategy" if "eval_strategy" in sig.parameters else "evaluation_strategy"
+        
+        # Build args dict with conditional parameters
+        training_args_dict = {
+            "output_dir": self.config.output_dir,
+            "per_device_train_batch_size": self.config.micro_batch_size,
+            "gradient_accumulation_steps": self.config.gradient_accumulation_steps,
+            "num_train_epochs": self.config.num_epochs,
+            "learning_rate": self.config.learning_rate,
+            "warmup_steps": self.config.warmup_steps,
+            "fp16": self.config.fp16,
+            "bf16": self.config.bf16,
+            "logging_steps": self.config.logging_steps,
+            "save_steps": self.config.save_steps,
+            "save_total_limit": self.config.save_total_limit,
+            "report_to": "none",  # Disable wandb/tensorboard for Colab
+            "optim": "paged_adamw_8bit",  # Memory-efficient optimizer
+            "max_grad_norm": 0.3,
+            "remove_unused_columns": False
+        }
+        
+        # Add evaluation parameters if eval_dataset is provided
+        if eval_dataset:
+            training_args_dict["eval_steps"] = self.config.eval_steps
+            training_args_dict[eval_param_name] = "steps"
+            training_args_dict["load_best_model_at_end"] = True
+        else:
+            training_args_dict[eval_param_name] = "no"
+        
+        training_args = TrainingArguments(**training_args_dict)
         
         # Data collator
         data_collator = DataCollatorForLanguageModeling(
