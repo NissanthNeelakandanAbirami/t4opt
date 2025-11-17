@@ -120,6 +120,49 @@ trainer.train(tokenized)
 - Reduce `max_seq_length` to 512
 - Increase `gradient_accumulation_steps`
 
+### Session Crashes During Quantization
+If your Colab session crashes during INT8 quantization, try these solutions:
+
+1. **Run merge and quantization in separate cells** - The code now automatically cleans up memory, but running them separately helps:
+   ```python
+   # Cell 1: Merge LoRA
+   merge_result = merge_lora_weights(...)
+   MemoryManager.print_memory_summary()
+   MemoryManager.clear_cache()
+   
+   # Cell 2: Wait a moment, then quantize
+   import time
+   time.sleep(5)  # Give Colab time to free memory
+   int8_result = quantize_to_int8(...)
+   ```
+
+2. **Restart runtime before quantization** - After merging, restart the runtime and reload only what you need:
+   ```python
+   # After restart, only load what's needed
+   from quant.quant_int8 import quantize_to_int8
+   from utils.memory import MemoryManager
+   MemoryManager.clear_cache()
+   int8_result = quantize_to_int8(merged_output, ...)
+   ```
+
+3. **Use lower precision during merge** - The merge function now automatically cleans up, but you can also manually clear:
+   ```python
+   merge_result = merge_lora_weights(...)
+   # Explicit cleanup
+   import gc
+   import torch
+   gc.collect()
+   torch.cuda.empty_cache()
+   ```
+
+4. **Check available RAM** - Before quantization, verify you have enough memory:
+   ```python
+   MemoryManager.print_memory_summary()
+   # If CPU memory is >80% used, restart runtime
+   ```
+
+5. **Quantize in smaller batches** - For very large models, consider using AWQ (4-bit) instead of INT8, which uses less memory during quantization.
+
 ## Tips
 
 1. **Save to Drive**: Mount Google Drive to save checkpoints

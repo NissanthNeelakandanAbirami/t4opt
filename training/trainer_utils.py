@@ -59,15 +59,29 @@ class TrainingUtils:
         Returns:
             Optimal batch size
         """
-        print("Finding optimal batch size...")
+        print(f"🔍 Finding optimal batch size (testing {start_batch_size}-{max_batch_size})...")
+        print("   This maximizes GPU utilization by finding the largest batch that fits.")
         
         optimal_batch_size = start_batch_size
+        model.eval()  # Set to eval mode for testing
         
-        for batch_size in range(start_batch_size, max_batch_size + 1, 2):
+        # Test batch sizes more aggressively
+        test_sizes = []
+        if start_batch_size == 1:
+            test_sizes = [1, 2, 4, 6, 8, 12, 16, 20, 24, 28, 32]
+        else:
+            # Start from start_batch_size and go up
+            test_sizes = list(range(start_batch_size, min(max_batch_size + 1, 33), 2))
+            if max_batch_size > 32:
+                test_sizes.extend([36, 40, 48, 56, 64])
+        
+        test_sizes = [s for s in test_sizes if s <= max_batch_size]
+        
+        for batch_size in test_sizes:
             try:
                 # Create dummy input
-                dummy_input = torch.randint(0, tokenizer.vocab_size, (batch_size, max_seq_length))
-                dummy_input = dummy_input.to(model.device)
+                dummy_input = torch.randint(0, min(tokenizer.vocab_size, 32000), (batch_size, max_seq_length))
+                dummy_input = dummy_input.to(next(model.parameters()).device)
                 
                 # Try forward pass
                 with torch.no_grad():
@@ -75,15 +89,18 @@ class TrainingUtils:
                 
                 optimal_batch_size = batch_size
                 torch.cuda.empty_cache()
+                print(f"   ✅ Batch size {batch_size} works")
                 
             except RuntimeError as e:
-                if "out of memory" in str(e):
+                if "out of memory" in str(e).lower():
                     torch.cuda.empty_cache()
+                    print(f"   ❌ Batch size {batch_size} failed (OOM)")
                     break
                 else:
                     raise e
         
-        print(f"Optimal batch size: {optimal_batch_size}")
+        print(f"✅ Optimal batch size found: {optimal_batch_size}")
+        print(f"   This will maximize GPU utilization!")
         return optimal_batch_size
     
     @staticmethod

@@ -110,15 +110,17 @@ class OptimizeAgent(BaseAgent):
         """Quantize model to 4-bit or INT8."""
         quant_type = context.get("quant_type", "int8") if context else "int8"
         model_path = context.get("model_path") if context else None
+        use_gpu = context.get("use_gpu", True) if context else True  # Default to GPU
         
         if not model_path:
             raise ValueError("model_path required for quantize_model")
         
-        self.log(f"Quantizing model to {quant_type}")
+        device_str = "GPU" if use_gpu else "CPU"
+        self.log(f"Quantizing model to {quant_type} on {device_str}")
         
         if quant_type == "int8":
             from quant.quant_int8 import quantize_to_int8
-            result = quantize_to_int8(model_path, context)
+            result = quantize_to_int8(model_path, context, use_gpu=use_gpu)
         elif quant_type == "awq":
             from quant.quant_awq import quantize_to_awq
             result = quantize_to_awq(model_path, context)
@@ -130,7 +132,8 @@ class OptimizeAgent(BaseAgent):
             "quant_type": quant_type,
             "model_path": model_path,
             "quantization_result": result,
-            "status": "quantized"
+            "status": "quantized",
+            "use_gpu": use_gpu
         }
     
     def _export_model(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:

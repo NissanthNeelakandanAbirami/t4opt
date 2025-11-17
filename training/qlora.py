@@ -162,7 +162,14 @@ class QLoRATrainer:
             "report_to": "none",  # Disable wandb/tensorboard for Colab
             "optim": "paged_adamw_8bit",  # Memory-efficient optimizer
             "max_grad_norm": 0.3,
-            "remove_unused_columns": False
+            "remove_unused_columns": False,
+            # GPU optimization settings
+            # Note: In Colab, reduce workers if you get errors (Colab has limited CPU cores)
+            "dataloader_num_workers": 2,  # Parallel data loading (2 for Colab, 4 for local)
+            "dataloader_pin_memory": True,  # Faster GPU transfer
+            "dataloader_prefetch_factor": 2,  # Prefetch batches
+            "ddp_find_unused_parameters": False,  # Faster DDP
+            "group_by_length": True,  # Group similar length sequences for efficiency
         }
         
         # Add evaluation parameters if eval_dataset is provided
