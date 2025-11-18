@@ -1,5 +1,3 @@
-"""T4-OPT Utilities - Helper functions and tools."""
-
 from .memory import MemoryManager
 from .logger import Logger
 from .config import Config

@@ -43,22 +43,18 @@ quantized_models/
 logs/
 eval_report.txt
 
-# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS
 .DS_Store
 Thumbs.db
 
-# Colab
 /content/
 /drive/
 
-# Temporary files
 *.tmp
 temp/
 tmp/

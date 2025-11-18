@@ -15,7 +15,7 @@ setup(
     description="Lightweight Agentic LLM Training & Optimization System for T4 GPUs",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/YOUR_USERNAME/t4opt",  # Update with your GitHub URL
+    url="https://github.com/YOUR_USERNAME/t4opt", 
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",

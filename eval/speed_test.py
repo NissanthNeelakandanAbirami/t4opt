@@ -1,5 +1,3 @@
-"""Speed and latency testing for models."""
-
 import torch
 import time
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -9,7 +7,6 @@ import gc
 
 
 class SpeedTester:
-    """Tests model inference speed and latency."""
     
     def __init__(
         self, 
@@ -18,27 +15,15 @@ class SpeedTester:
         model: Optional[Any] = None,
         tokenizer: Optional[Any] = None
     ):
-        """
-        Initialize speed tester.
-        
-        Args:
-            model_path: Path to model (required if model not provided)
-            device: Device to use (auto-detected if None)
-            model: Pre-loaded model (optional, avoids reloading)
-            tokenizer: Pre-loaded tokenizer (optional, avoids reloading)
-        """
         self.model_path = model_path
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         
-        # Clear GPU cache before loading
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             torch.cuda.synchronize()
         gc.collect()
         
-        # Use provided model/tokenizer or load new ones
         if model is not None and tokenizer is not None:
-            print("Using provided model and tokenizer (memory-efficient)")
             self.model = model
             self.tokenizer = tokenizer
         else:
@@ -48,7 +33,7 @@ class SpeedTester:
                 torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
                 device_map="auto" if self.device == "cuda" else None,
                 trust_remote_code=True,
-                low_cpu_mem_usage=True  # Memory-efficient loading
+                low_cpu_mem_usage=True  
             )
             
             if self.device == "cpu":
@@ -60,13 +45,10 @@ class SpeedTester:
         
         self.model.eval()
         
-        # Clear cache after loading
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
     
     def cleanup(self):
-        """Clean up model and free memory."""
-        print("Cleaning up speed tester...")
         del self.model
         del self.tokenizer
         gc.collect()
@@ -80,20 +62,9 @@ class SpeedTester:
         prompt: str = "The quick brown fox",
         max_new_tokens: int = 50
     ) -> Dict[str, Any]:
-        """
-        Test inference latency.
-        
-        Args:
-            num_runs: Number of runs for averaging
-            prompt: Test prompt
-            max_new_tokens: Maximum tokens to generate
-            
-        Returns:
-            Dictionary with latency results
-        """
+       
         print(f"Testing latency ({num_runs} runs)...")
         
-        # Warmup
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
         with torch.no_grad():
             _ = self.model.generate(**inputs, max_new_tokens=10)
@@ -101,7 +72,6 @@ class SpeedTester:
         if self.device == "cuda":
             torch.cuda.synchronize()
         
-        # Actual timing
         latencies = []
         token_times = []
         
@@ -149,35 +119,21 @@ class SpeedTester:
         seq_length: int = 128,
         num_runs: int = 5
     ) -> Dict[str, Any]:
-        """
-        Test throughput for different batch sizes.
-        
-        Args:
-            batch_sizes: List of batch sizes to test
-            seq_length: Sequence length
-            num_runs: Number of runs per batch size
-            
-        Returns:
-            Dictionary with throughput results
-        """
         print(f"Testing throughput for batch sizes: {batch_sizes}")
         
         results = {}
         
         for batch_size in batch_sizes:
             try:
-                # Create dummy input
                 dummy_input = torch.randint(0, self.tokenizer.vocab_size, (batch_size, seq_length))
                 dummy_input = dummy_input.to(self.device)
-                
-                # Warmup
+
                 with torch.no_grad():
                     _ = self.model(dummy_input)
                 
                 if self.device == "cuda":
                     torch.cuda.synchronize()
-                
-                # Time forward pass
+
                 times = []
                 for _ in range(num_runs):
                     if self.device == "cuda":

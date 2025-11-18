@@ -1,5 +1,3 @@
-"""T4-OPT: Lightweight Agentic LLM Training & Optimization System."""
-
 __version__ = "1.0.0"
 __author__ = "T4-OPT"
 

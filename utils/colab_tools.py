@@ -1,5 +1,3 @@
-"""Colab-specific utilities and helpers."""
-
 import os
 import sys
 from typing import Optional
@@ -10,7 +8,6 @@ class ColabTools:
     
     @staticmethod
     def is_colab() -> bool:
-        """Check if running in Google Colab."""
         try:
             import google.colab
             return True
@@ -23,25 +20,20 @@ class ColabTools:
         import torch
         
         if not torch.cuda.is_available():
-            print("⚠️  GPU not available!")
+            print("GPU not available!")
             return False
         
         gpu_name = torch.cuda.get_device_name(0)
         gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
         
-        print(f"✅ GPU Available: {gpu_name}")
+        print(f"GPU Available: {gpu_name}")
         print(f"   Memory: {gpu_memory:.2f} GB")
         
-        if "T4" in gpu_name:
-            print("   ✅ T4 GPU detected - optimized for T4-OPT")
-        else:
-            print(f"   ⚠️  Non-T4 GPU - may need adjustments")
         
         return True
     
     @staticmethod
     def install_dependencies():
-        """Install required dependencies in Colab."""
         if not ColabTools.is_colab():
             print("Not in Colab - skipping dependency installation")
             return
@@ -62,24 +54,21 @@ class ColabTools:
         for package in packages:
             os.system(f"pip install -q {package}")
         
-        print("✅ Dependencies installed")
+        print("Dependencies installed")
     
     @staticmethod
     def setup_environment():
         """Setup Colab environment for T4-OPT."""
         print("Setting up T4-OPT environment...")
         
-        # Check GPU
         if not ColabTools.check_gpu():
-            print("⚠️  Continuing without GPU (will be slow)")
+            print("Continuing without GPU (will be slow)")
         
-        # Install dependencies
         ColabTools.install_dependencies()
         
-        # Set environment variables
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
         
-        print("✅ Environment setup complete")
+        print("Environment setup complete")
     
     @staticmethod
     def mount_drive():
@@ -91,10 +80,10 @@ class ColabTools:
         try:
             from google.colab import drive
             drive.mount('/content/drive')
-            print("✅ Google Drive mounted at /content/drive")
+            print("Google Drive mounted at /content/drive")
             return "/content/drive"
         except Exception as e:
-            print(f"⚠️  Failed to mount Drive: {e}")
+            print(f"Failed to mount Drive: {e}")
             return None
     
     @staticmethod
@@ -102,12 +91,9 @@ class ColabTools:
         """Verify that all optimizations are compatible with T4 GPU in Colab."""
         import torch
         
-        print("=" * 60)
-        print("T4 GPU Compatibility Check")
-        print("=" * 60)
         
         if not torch.cuda.is_available():
-            print("❌ GPU not available!")
+            print("GPU not available!")
             return False
         
         gpu_name = torch.cuda.get_device_name(0)
@@ -121,45 +107,31 @@ class ColabTools:
         print(f"Environment: {'Google Colab' if is_colab_env else 'Local'}")
         print()
         
-        # Check compatibility
         all_ok = True
         
-        # T4 detection
         if is_t4:
-            print("✅ Tesla T4 detected")
+            print("Tesla T4 detected")
         else:
-            print(f"⚠️  Non-T4 GPU detected (will still work, but optimized for T4)")
+            print(f"Non-T4 GPU detected (will still work, but optimized for T4)")
         
-        # Memory check
         if gpu_memory >= 15.0:
-            print(f"✅ Sufficient GPU memory ({gpu_memory:.2f} GB)")
+            print(f"Sufficient GPU memory ({gpu_memory:.2f} GB)")
         else:
-            print(f"⚠️  Lower GPU memory ({gpu_memory:.2f} GB) - may need smaller batch sizes")
+            print(f"Lower GPU memory ({gpu_memory:.2f} GB) - may need smaller batch sizes")
             all_ok = False
         
-        # Feature compatibility
         print("\nFeature Compatibility:")
-        print(f"  ✅ fp16: Supported (will be used)")
         print(f"  {'✅' if torch.cuda.is_bf16_supported() else 'ℹ️ '} bf16: {'Supported' if torch.cuda.is_bf16_supported() else 'Not supported (T4 uses fp16)'}")
-        print(f"  ✅ Flash Attention: Available")
-        print(f"  ✅ BitsAndBytes: Available")
-        print(f"  ✅ QLoRA 4-bit: Supported")
-        print(f"  ✅ Gradient Checkpointing: Supported")
-        print(f"  ℹ️  TF32: Not available on T4 (Ampere+ only, harmless)")
-        
-        # Colab-specific
+
         if is_colab_env:
             print("\nColab-Specific:")
-            print(f"  ✅ DataLoader workers: Set to 2 (Colab-optimized)")
-            print(f"  ✅ Memory management: Optimized for Colab")
+            print(f"  DataLoader workers: Set to 2 (Colab-optimized)")
+            print(f"  Memory management: Optimized for Colab")
         
-        print("\n" + "=" * 60)
         if is_t4 and all_ok:
-            print("✅ All optimizations are compatible with Tesla T4 in Colab!")
-            print("   You're ready to train with maximum GPU utilization! 🚀")
+            print("All optimizations are compatible with Tesla T4 in Colab!")
         else:
-            print("✅ System is compatible - optimizations will work!")
-        print("=" * 60)
+            print("System is compatible - optimizations will work!")
         
         return True
     
@@ -169,17 +141,10 @@ class ColabTools:
         import torch
         import psutil
         
-        print("=" * 60)
-        print("System Information")
-        print("=" * 60)
-        
-        # Python version
         print(f"Python: {sys.version.split()[0]}")
         
-        # PyTorch version
         print(f"PyTorch: {torch.__version__}")
         
-        # GPU info
         if torch.cuda.is_available():
             print(f"CUDA: {torch.version.cuda}")
             print(f"GPU: {torch.cuda.get_device_name(0)}")
@@ -187,11 +152,9 @@ class ColabTools:
         else:
             print("GPU: Not available")
         
-        # CPU info
         print(f"CPU Cores: {psutil.cpu_count()}")
         print(f"RAM: {psutil.virtual_memory().total / 1024**3:.2f} GB")
         
-        # Colab check
         if ColabTools.is_colab():
             print("Environment: Google Colab")
         else:

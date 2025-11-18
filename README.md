@@ -4,15 +4,15 @@
 
 T4-OPT is an advanced, production-ready system for training, quantizing, and evaluating large language models on T4 GPUs (16GB VRAM). It features a multi-agent orchestration system and is designed to work entirely within Google Colab's free tier.
 
-## 🌟 Features
+## Features
 
-- ✅ **QLoRA 4-bit Training** - Efficient fine-tuning with minimal VRAM usage
-- ✅ **Multi-Agent System** - Planner, Trainer, Optimizer, Evaluator, and Recovery agents
-- ✅ **Model Quantization** - INT8, AWQ, and NF4 quantization support
-- ✅ **Comprehensive Evaluation** - Perplexity, benchmarks, and speed tests
-- ✅ **T4-Optimized** - Memory-efficient configurations for 16GB VRAM
-- ✅ **Pure Python** - No backend or frontend required
-- ✅ **Colab-Ready** - Works out of the box in Google Colab
+- **QLoRA 4-bit Training** - Efficient fine-tuning with minimal VRAM usage
+- **Multi-Agent System** - Planner, Trainer, Optimizer, Evaluator, and Recovery agents
+- **Model Quantization** - INT8, AWQ, and NF4 quantization support
+- **Comprehensive Evaluation** - Perplexity, benchmarks, and speed tests
+- **T4-Optimized** - Memory-efficient configurations for 16GB VRAM
+- **Pure Python** - No backend or frontend required
+- **Colab-Ready** - Works out of the box in Google Colab
 
 ## 📂 Project Structure
 
@@ -55,7 +55,7 @@ t4opt/
     └── 5_agents_inference.ipynb
 ```
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Setup Environment (Colab)
 
@@ -148,128 +148,10 @@ result = trainer.execute("run_training", context={
 })
 ```
 
-## 🎯 Recommended Models for T4
-
-| Model | Size | Trainable on T4? | Notes |
-|-------|------|------------------|-------|
-| TinyLlama-1.1B | 1.1B | ✅✅✅ | Easiest, perfect for training |
-| Phi-2 | 2.7B | ✅✅ | Good fit with QLoRA |
-| Gemma-2B | 2B | ✅✅ | Fast and high quality |
-| Llama-3-3B | 3B | ⚠️ | Works but slow |
-| Mistral 7B | 7B | ❌ | Too large for T4 training |
-
-**Recommended**: Phi-2 or Gemma-2B for best results.
-
-## ⚙️ T4 Training Configuration
-
-Key settings for T4 (16GB VRAM):
-
-- **QLoRA 4-bit**: `load_in_4bit=True`, `bnb_4bit_quant_type="nf4"`
-- **Gradient Checkpointing**: `use_gradient_checkpointing=True`
-- **Sequence Length**: `max_seq_length=1024`
-- **Micro Batch Size**: `micro_batch_size=1-2`
-- **Gradient Accumulation**: `gradient_accumulation_steps=16-32`
-- **Mixed Precision**: `fp16=True`
-- **Optimizer**: `optim="paged_adamw_8bit"`
-
-Expected performance:
-- Training speed: ~2 it/s
-- Finetuning time: ~45-90 mins per epoch
-- Model fits well in VRAM
-
-## 📊 Evaluation Metrics
-
-T4-OPT includes comprehensive evaluation:
-
-- **Perplexity**: Language modeling quality
-- **MMLU**: Multi-task language understanding (subset)
-- **Generation Quality**: Text generation benchmarks
-- **Speed Tests**: Latency and throughput measurements
-- **Toxicity Tests**: Basic safety evaluation
-
-## 🔧 Installation
-
-### Local Installation
-
-```bash
-pip install -r requirements.txt
-```
-
-### Colab Installation
-
-The notebooks handle installation automatically, or run:
-
-```python
-from utils.colab_tools import ColabTools
-ColabTools.install_dependencies()
-```
-
-## 📝 Usage Examples
-
-See the Jupyter notebooks for detailed examples:
-
-1. **1_setup_environment.ipynb** - Environment setup
-2. **2_train_llm_t4.ipynb** - Training workflow
-3. **3_quantize_model.ipynb** - Quantization workflow
-4. **4_eval_model.ipynb** - Evaluation workflow
-5. **5_agents_inference.ipynb** - Multi-agent system
-
-## 🧩 Agent System
-
-T4-OPT features a multi-agent orchestration system:
-
-- **PlannerAgent**: Breaks down high-level tasks into actionable steps
-- **TrainingAgent**: Handles QLoRA fine-tuning
-- **OptimizeAgent**: Manages quantization and optimization
-- **EvalAgent**: Runs evaluation benchmarks
-- **RecoveryAgent**: Handles training failures and checkpoint recovery
-
-## 💡 Tips for T4 Training
-
-1. **Start Small**: Use 500-1000 samples for initial testing
-2. **Monitor Memory**: Use `MemoryManager.print_memory_summary()` regularly
-3. **Save Frequently**: Set `save_steps=500` to avoid losing progress
-4. **Use Gradient Accumulation**: Compensate for small batch sizes
-5. **Clear Cache**: Call `MemoryManager.clear_cache()` between operations
-
-## 🐛 Troubleshooting
-
-### Out of Memory (OOM)
-
-- Reduce `max_seq_length` to 512
-- Increase `gradient_accumulation_steps`
-- Reduce `max_samples` in dataset
-- Use `MemoryManager.clear_cache()`
-
-### Slow Training
-
-- Normal for T4: expect ~2 it/s
-- Reduce `num_epochs` for testing
-- Use smaller models (Phi-2, Gemma-2B)
-
-### Import Errors
-
-- Ensure all dependencies are installed
-- Check Python path includes t4opt directory
-- Restart Colab runtime if needed
-
-## 📄 License
-
-This project is provided as-is for educational and research purposes.
-
-## 🙏 Acknowledgments
-
 Built with:
 - [Transformers](https://github.com/huggingface/transformers)
 - [PEFT](https://github.com/huggingface/peft)
 - [BitsAndBytes](https://github.com/TimDettmers/bitsandbytes)
 - [Accelerate](https://github.com/huggingface/accelerate)
 
-## 📧 Contact
-
-For questions or issues, please open an issue on the repository.
-
----
-
-**Built for T4 GPUs | Optimized for Research | Production-Ready Architecture**
 

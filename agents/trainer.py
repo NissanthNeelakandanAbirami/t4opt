@@ -1,34 +1,27 @@
-"""Training agent - handles QLoRA fine-tuning of LLMs."""
-
 from typing import Dict, Any, Optional
 from .base import BaseAgent, AgentState
 import os
 import sys
 
-# Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 
 class TrainingAgent(BaseAgent):
-    """Agent responsible for LLM training and fine-tuning."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__("TrainingAgent", config)
         self.training_module = None
         
     def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> AgentState:
-        """Execute training task."""
         self.state = AgentState(task=task, status="running")
         
         try:
             if not self.validate_input(task, context):
                 raise ValueError("Invalid task input")
-            
-            # Import training module
+
             from training.qlora import QLoRATrainer
             from training.dataset import DatasetManager
             
-            # Parse task
             task_type = self._parse_task(task)
             
             if task_type == "prepare_dataset":
@@ -40,7 +33,7 @@ class TrainingAgent(BaseAgent):
             elif task_type == "save_checkpoint":
                 result = self._save_checkpoint(context)
             else:
-                result = self._run_training(context)  # Default
+                result = self._run_training(context) 
             
             self.state.status = "completed"
             self.state.result = result
@@ -56,7 +49,6 @@ class TrainingAgent(BaseAgent):
         return self.state
     
     def _parse_task(self, task: str) -> str:
-        """Parse task string to determine action."""
         task_lower = task.lower()
         if "dataset" in task_lower or "prepare" in task_lower:
             return "prepare_dataset"
@@ -68,7 +60,6 @@ class TrainingAgent(BaseAgent):
             return "run_training"
     
     def _prepare_dataset(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Prepare dataset for training."""
         from training.dataset import DatasetManager
         
         dataset_name = context.get("dataset_name", "alpaca") if context else "alpaca"
@@ -87,7 +78,6 @@ class TrainingAgent(BaseAgent):
         }
     
     def _configure_training(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Configure training parameters."""
         config = {
             "model_name": context.get("model_name", "microsoft/phi-2") if context else "microsoft/phi-2",
             "output_dir": context.get("output_dir", "./checkpoints") if context else "./checkpoints",
@@ -113,21 +103,17 @@ class TrainingAgent(BaseAgent):
         }
     
     def _run_training(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Run QLoRA training."""
         from training.qlora import QLoRATrainer
-        
-        # Get config from context or use defaults
+
         if context and "config" in context:
             train_config = context["config"]
         else:
             train_config = self._configure_training(context)["config"]
         
         self.log(f"Starting QLoRA training for {train_config['model_name']}")
-        
-        # Initialize trainer
+
         trainer = QLoRATrainer(config=train_config)
-        
-        # Run training
+
         training_result = trainer.train()
         
         return {
@@ -139,7 +125,6 @@ class TrainingAgent(BaseAgent):
         }
     
     def _save_checkpoint(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Save model checkpoint."""
         output_dir = context.get("output_dir", "./checkpoints") if context else "./checkpoints"
         
         self.log(f"Saving checkpoint to {output_dir}")

@@ -1,5 +1,3 @@
-"""Perplexity evaluation for language models."""
-
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from typing import Dict, Any, Optional, List
@@ -9,7 +7,6 @@ import gc
 
 
 class PerplexityEvaluator:
-    """Evaluates model perplexity on test data."""
     
     def __init__(
         self, 
@@ -18,27 +15,15 @@ class PerplexityEvaluator:
         model: Optional[Any] = None,
         tokenizer: Optional[Any] = None
     ):
-        """
-        Initialize perplexity evaluator.
-        
-        Args:
-            model_path: Path to model (required if model not provided)
-            device: Device to use (auto-detected if None)
-            model: Pre-loaded model (optional, avoids reloading)
-            tokenizer: Pre-loaded tokenizer (optional, avoids reloading)
-        """
         self.model_path = model_path
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         
-        # Clear GPU cache before loading
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             torch.cuda.synchronize()
         gc.collect()
-        
-        # Use provided model/tokenizer or load new ones
+
         if model is not None and tokenizer is not None:
-            print("Using provided model and tokenizer (memory-efficient)")
             self.model = model
             self.tokenizer = tokenizer
         else:
@@ -48,7 +33,7 @@ class PerplexityEvaluator:
                 torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
                 device_map="auto" if self.device == "cuda" else None,
                 trust_remote_code=True,
-                low_cpu_mem_usage=True  # Memory-efficient loading
+                low_cpu_mem_usage=True  
             )
             
             if self.device == "cpu":
@@ -59,14 +44,11 @@ class PerplexityEvaluator:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
         
         self.model.eval()
-        
-        # Clear cache after loading
+
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
     
     def cleanup(self):
-        """Clean up model and free memory."""
-        print("Cleaning up perplexity evaluator...")
         del self.model
         del self.tokenizer
         gc.collect()
@@ -80,17 +62,6 @@ class PerplexityEvaluator:
         max_samples: int = 100,
         max_length: int = 512
     ) -> Dict[str, Any]:
-        """
-        Evaluate perplexity on test data.
-        
-        Args:
-            test_data: List of text samples (if None, uses default test set)
-            max_samples: Maximum number of samples to evaluate
-            max_length: Maximum sequence length
-            
-        Returns:
-            Dictionary with perplexity results
-        """
         if test_data is None:
             test_data = self._get_default_test_data()
         
@@ -103,7 +74,6 @@ class PerplexityEvaluator:
         
         with torch.no_grad():
             for text in tqdm(test_data, desc="Computing perplexity"):
-                # Tokenize
                 inputs = self.tokenizer(
                     text,
                     return_tensors="pt",
@@ -112,16 +82,13 @@ class PerplexityEvaluator:
                     padding=True
                 ).to(self.device)
                 
-                # Forward pass
                 outputs = self.model(**inputs, labels=inputs["input_ids"])
                 loss = outputs.loss
                 
-                # Accumulate
                 num_tokens = inputs["input_ids"].numel()
                 total_loss += loss.item() * num_tokens
                 total_tokens += num_tokens
         
-        # Calculate perplexity
         avg_loss = total_loss / total_tokens if total_tokens > 0 else float('inf')
         perplexity = np.exp(avg_loss)
         
@@ -133,12 +100,11 @@ class PerplexityEvaluator:
         }
     
     def _get_default_test_data(self) -> List[str]:
-        """Get default test data for evaluation."""
         return [
             "The quick brown fox jumps over the lazy dog.",
             "Machine learning is a subset of artificial intelligence.",
             "Natural language processing enables computers to understand human language.",
             "Deep learning models require large amounts of data for training.",
             "Transformers have revolutionized the field of NLP.",
-        ] * 20  # Repeat to get more samples
+        ] * 20  
 

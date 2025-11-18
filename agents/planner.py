@@ -1,12 +1,9 @@
-"""Planner agent - breaks down high-level tasks into actionable steps."""
-
 from typing import Dict, Any, Optional, List
 from .base import BaseAgent, AgentState
 import re
 
 
 class PlannerAgent(BaseAgent):
-    """Agent that plans and decomposes complex tasks into subtasks."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__("PlannerAgent", config)
@@ -18,17 +15,14 @@ class PlannerAgent(BaseAgent):
         }
     
     def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> AgentState:
-        """Plan and decompose task into subtasks."""
         self.state = AgentState(task=task, status="running")
         
         try:
             if not self.validate_input(task, context):
                 raise ValueError("Invalid task input")
             
-            # Detect task type
             task_type = self._detect_task_type(task)
-            
-            # Generate plan
+
             plan = self._generate_plan(task, task_type, context)
             
             self.state.status = "completed"
@@ -50,7 +44,6 @@ class PlannerAgent(BaseAgent):
         return self.state
     
     def _detect_task_type(self, task: str) -> str:
-        """Detect task type from task description."""
         task_lower = task.lower()
         
         if any(word in task_lower for word in ["train", "finetune", "fine-tune"]):
@@ -65,7 +58,6 @@ class PlannerAgent(BaseAgent):
             return "custom"
     
     def _generate_plan(self, task: str, task_type: str, context: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Generate detailed plan for task."""
         plan = []
         
         if task_type in self.task_templates:
@@ -79,7 +71,6 @@ class PlannerAgent(BaseAgent):
                     "dependencies": self._get_dependencies(step, i)
                 })
         else:
-            # Custom task - create generic plan
             plan.append({
                 "step_id": 1,
                 "action": "execute_task",
@@ -91,7 +82,6 @@ class PlannerAgent(BaseAgent):
         return plan
     
     def _map_step_to_agent(self, step: str) -> str:
-        """Map step to responsible agent."""
         agent_map = {
             "prepare_dataset": "TrainingAgent",
             "configure_training": "TrainingAgent",
@@ -108,7 +98,6 @@ class PlannerAgent(BaseAgent):
         return agent_map.get(step, "TrainingAgent")
     
     def _get_step_description(self, step: str) -> str:
-        """Get human-readable description for step."""
         descriptions = {
             "prepare_dataset": "Load and preprocess training dataset",
             "configure_training": "Set up QLoRA training configuration",
@@ -125,14 +114,11 @@ class PlannerAgent(BaseAgent):
         return descriptions.get(step, step)
     
     def _get_dependencies(self, step: str, step_index: int) -> List[int]:
-        """Get dependencies for a step."""
-        # Simple dependency: each step depends on previous
         if step_index > 0:
             return [step_index]
         return []
     
     def _estimate_time(self, plan: List[Dict[str, Any]]) -> Dict[str, float]:
-        """Estimate time for plan execution (in minutes)."""
         time_estimates = {
             "prepare_dataset": 5.0,
             "configure_training": 2.0,

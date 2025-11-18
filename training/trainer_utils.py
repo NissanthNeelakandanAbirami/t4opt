@@ -1,5 +1,3 @@
-"""Utility functions for training."""
-
 import torch
 import psutil
 import os
@@ -7,11 +5,9 @@ from typing import Dict, Any, Optional
 
 
 class TrainingUtils:
-    """Utility functions for training optimization."""
     
     @staticmethod
     def get_gpu_memory_info() -> Dict[str, float]:
-        """Get GPU memory information."""
         if not torch.cuda.is_available():
             return {"available": False}
         
@@ -29,7 +25,6 @@ class TrainingUtils:
     
     @staticmethod
     def get_cpu_memory_info() -> Dict[str, float]:
-        """Get CPU memory information."""
         memory = psutil.virtual_memory()
         return {
             "total_gb": memory.total / 1024**3,
@@ -46,31 +41,14 @@ class TrainingUtils:
         start_batch_size: int = 4,
         max_batch_size: int = 32
     ) -> int:
-        """
-        Find optimal batch size for training.
-        
-        Args:
-            model: Model instance
-            tokenizer: Tokenizer instance
-            max_seq_length: Maximum sequence length
-            start_batch_size: Starting batch size
-            max_batch_size: Maximum batch size to try
-            
-        Returns:
-            Optimal batch size
-        """
-        print(f"🔍 Finding optimal batch size (testing {start_batch_size}-{max_batch_size})...")
-        print("   This maximizes GPU utilization by finding the largest batch that fits.")
         
         optimal_batch_size = start_batch_size
-        model.eval()  # Set to eval mode for testing
+        model.eval()  
         
-        # Test batch sizes more aggressively
         test_sizes = []
         if start_batch_size == 1:
             test_sizes = [1, 2, 4, 6, 8, 12, 16, 20, 24, 28, 32]
         else:
-            # Start from start_batch_size and go up
             test_sizes = list(range(start_batch_size, min(max_batch_size + 1, 33), 2))
             if max_batch_size > 32:
                 test_sizes.extend([36, 40, 48, 56, 64])
@@ -79,33 +57,29 @@ class TrainingUtils:
         
         for batch_size in test_sizes:
             try:
-                # Create dummy input
                 dummy_input = torch.randint(0, min(tokenizer.vocab_size, 32000), (batch_size, max_seq_length))
                 dummy_input = dummy_input.to(next(model.parameters()).device)
                 
-                # Try forward pass
                 with torch.no_grad():
                     _ = model(dummy_input)
                 
                 optimal_batch_size = batch_size
                 torch.cuda.empty_cache()
-                print(f"   ✅ Batch size {batch_size} works")
+                print(f" Batch size {batch_size} works")
                 
             except RuntimeError as e:
                 if "out of memory" in str(e).lower():
                     torch.cuda.empty_cache()
-                    print(f"   ❌ Batch size {batch_size} failed (OOM)")
+                    print(f" Batch size {batch_size} failed (OOM)")
                     break
                 else:
                     raise e
         
-        print(f"✅ Optimal batch size found: {optimal_batch_size}")
-        print(f"   This will maximize GPU utilization!")
+        print(f"Optimal batch size found: {optimal_batch_size}")
         return optimal_batch_size
     
     @staticmethod
     def clear_memory():
-        """Clear GPU and CPU memory."""
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             torch.cuda.synchronize()
@@ -121,19 +95,7 @@ class TrainingUtils:
         num_epochs: int,
         seconds_per_step: float = 2.0
     ) -> Dict[str, float]:
-        """
-        Estimate training time.
         
-        Args:
-            num_samples: Number of training samples
-            batch_size: Batch size
-            gradient_accumulation: Gradient accumulation steps
-            num_epochs: Number of epochs
-            seconds_per_step: Estimated seconds per training step
-            
-        Returns:
-            Dictionary with time estimates
-        """
         effective_batch_size = batch_size * gradient_accumulation
         steps_per_epoch = num_samples / effective_batch_size
         total_steps = steps_per_epoch * num_epochs
@@ -152,7 +114,6 @@ class TrainingUtils:
     
     @staticmethod
     def save_training_config(config: Dict[str, Any], path: str):
-        """Save training configuration to file."""
         import json
         os.makedirs(os.path.dirname(path) if os.path.dirname(path) else ".", exist_ok=True)
         with open(path, "w") as f:
@@ -160,7 +121,6 @@ class TrainingUtils:
     
     @staticmethod
     def load_training_config(path: str) -> Dict[str, Any]:
-        """Load training configuration from file."""
         import json
         with open(path, "r") as f:
             return json.load(f)

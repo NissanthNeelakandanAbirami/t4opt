@@ -1,5 +1,3 @@
-"""Evaluator agent - handles model evaluation and benchmarking."""
-
 from typing import Dict, Any, Optional
 from .base import BaseAgent, AgentState
 import os
@@ -9,20 +7,17 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 
 class EvalAgent(BaseAgent):
-    """Agent responsible for model evaluation and benchmarking."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__("EvalAgent", config)
     
     def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> AgentState:
-        """Execute evaluation task."""
         self.state = AgentState(task=task, status="running")
         
         try:
             if not self.validate_input(task, context):
                 raise ValueError("Invalid task input")
-            
-            # Parse task
+
             task_type = self._parse_task(task)
             
             if task_type == "run_perplexity":
@@ -32,7 +27,7 @@ class EvalAgent(BaseAgent):
             elif task_type == "generate_report":
                 result = self._generate_report(context)
             else:
-                result = self._run_benchmarks(context)  # Default
+                result = self._run_benchmarks(context) 
             
             self.state.status = "completed"
             self.state.result = result
@@ -48,7 +43,6 @@ class EvalAgent(BaseAgent):
         return self.state
     
     def _parse_task(self, task: str) -> str:
-        """Parse task string to determine action."""
         task_lower = task.lower()
         if "perplexity" in task_lower:
             return "run_perplexity"
@@ -58,7 +52,6 @@ class EvalAgent(BaseAgent):
             return "run_benchmarks"
     
     def _run_perplexity(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Run perplexity evaluation."""
         from eval.perplexity import PerplexityEvaluator
         
         model_path = context.get("model_path") if context else None
@@ -81,7 +74,6 @@ class EvalAgent(BaseAgent):
         }
     
     def _run_benchmarks(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Run evaluation benchmarks."""
         from eval.benchmarks import BenchmarkRunner
         
         model_path = context.get("model_path") if context else None
@@ -104,7 +96,6 @@ class EvalAgent(BaseAgent):
         }
     
     def _generate_report(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Generate evaluation report."""
         results = context.get("results") if context else {}
         output_path = context.get("output_path", "./eval_report.txt") if context else "./eval_report.txt"
         
@@ -128,8 +119,7 @@ class EvalAgent(BaseAgent):
             report_lines.append("")
         
         report_text = "\n".join(report_lines)
-        
-        # Save report
+
         with open(output_path, "w") as f:
             f.write(report_text)
         

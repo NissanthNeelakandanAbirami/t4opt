@@ -1,5 +1,3 @@
-"""Utilities for managing checkpoints in Colab."""
-
 import os
 from typing import Optional, List, Dict, Any
 
@@ -64,22 +62,18 @@ def check_checkpoint_exists(checkpoint_dir: str) -> Dict[str, Any]:
         return result
     
     result["exists"] = True
-    
-    # Find checkpoint subdirectories
+
     checkpoints = find_checkpoints(checkpoint_dir)
     result["checkpoints"] = checkpoints
     
     if checkpoints:
         result["latest_checkpoint"] = checkpoints[-1]
-        # List files in latest checkpoint
         latest_path = checkpoints[-1]
         if os.path.exists(latest_path):
             result["files"] = os.listdir(latest_path)
     
-    # Also check if it's a direct checkpoint (not in subdirectory)
     if os.path.exists(checkpoint_dir):
         files = os.listdir(checkpoint_dir)
-        # Check for common checkpoint files
         checkpoint_files = [f for f in files if any(
             ext in f for ext in [".pt", ".safetensors", ".bin", "adapter_config.json", "adapter_model.bin"]
         )]
@@ -93,11 +87,6 @@ def print_checkpoint_info(checkpoint_dir: str):
     """Print checkpoint information."""
     info = check_checkpoint_exists(checkpoint_dir)
     
-    print("=" * 60)
-    print("Checkpoint Information")
-    print("=" * 60)
-    print(f"Path: {checkpoint_dir}")
-    print(f"Exists: {'✅ Yes' if info['exists'] else '❌ No'}")
     
     if info['exists']:
         if info['checkpoints']:
@@ -106,19 +95,17 @@ def print_checkpoint_info(checkpoint_dir: str):
                 print(f"  - {os.path.basename(cp)}")
             print(f"\nLatest: {os.path.basename(info['latest_checkpoint'])}")
         else:
-            print("\n⚠️  Directory exists but no checkpoint subdirectories found")
+            print("\n Directory exists but no checkpoint subdirectories found")
             if info['files']:
                 print(f"Found {len(info['files'])} file(s) in directory")
                 print("Files:")
-                for f in info['files'][:10]:  # Show first 10
+                for f in info['files'][:10]: 
                     print(f"  - {f}")
                 if len(info['files']) > 10:
                     print(f"  ... and {len(info['files']) - 10} more")
     else:
-        print("\n💡 Tip: If you saved to Google Drive, mount Drive and check:")
         print(f"   /content/drive/MyDrive/t4opt_checkpoints/...")
     
-    print("=" * 60)
 
 
 def check_drive_checkpoints(drive_base: str = "/content/drive/MyDrive/t4opt_checkpoints") -> Dict[str, Any]:
@@ -143,7 +130,6 @@ def check_drive_checkpoints(drive_base: str = "/content/drive/MyDrive/t4opt_chec
     if os.path.exists(drive_base):
         result["base_exists"] = True
         
-        # Find all checkpoint directories
         for item in os.listdir(drive_base):
             item_path = os.path.join(drive_base, item)
             if os.path.isdir(item_path):

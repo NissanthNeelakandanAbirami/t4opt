@@ -1,5 +1,3 @@
-"""Benchmark evaluation for language models."""
-
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from typing import Dict, Any, Optional, List
@@ -9,7 +7,6 @@ import gc
 
 
 class BenchmarkRunner:
-    """Runs various benchmarks on language models."""
     
     def __init__(
         self, 
@@ -18,37 +15,26 @@ class BenchmarkRunner:
         model: Optional[Any] = None,
         tokenizer: Optional[Any] = None
     ):
-        """
-        Initialize benchmark runner.
         
-        Args:
-            model_path: Path to model (required if model not provided)
-            device: Device to use (auto-detected if None)
-            model: Pre-loaded model (optional, avoids reloading)
-            tokenizer: Pre-loaded tokenizer (optional, avoids reloading)
-        """
         self.model_path = model_path
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        
-        # Clear GPU cache before loading
+
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             torch.cuda.synchronize()
         gc.collect()
-        
-        # Use provided model/tokenizer or load new ones
+
         if model is not None and tokenizer is not None:
-            print("Using provided model and tokenizer (memory-efficient)")
             self.model = model
             self.tokenizer = tokenizer
-        else:
+        else: 
             print(f"Loading model from {model_path}")
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_path,
                 torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
                 device_map="auto" if self.device == "cuda" else None,
                 trust_remote_code=True,
-                low_cpu_mem_usage=True  # Memory-efficient loading
+                low_cpu_mem_usage=True  
             )
             
             if self.device == "cpu":
@@ -59,14 +45,11 @@ class BenchmarkRunner:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
         
         self.model.eval()
-        
-        # Clear cache after loading
+
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
     
     def cleanup(self):
-        """Clean up model and free memory."""
-        print("Cleaning up benchmark runner...")
         del self.model
         del self.tokenizer
         gc.collect()
@@ -75,15 +58,6 @@ class BenchmarkRunner:
             torch.cuda.synchronize()
     
     def run(self, benchmarks: List[str] = None) -> Dict[str, Any]:
-        """
-        Run specified benchmarks.
-        
-        Args:
-            benchmarks: List of benchmark names (mmlu, generation, etc.)
-            
-        Returns:
-            Dictionary with benchmark results
-        """
         if benchmarks is None:
             benchmarks = ["mmlu", "generation"]
         
@@ -101,10 +75,8 @@ class BenchmarkRunner:
         return results
     
     def _run_mmlu(self, num_questions: int = 20) -> Dict[str, Any]:
-        """Run mini MMLU benchmark (subset)."""
         print(f"Running mini MMLU benchmark ({num_questions} questions)...")
         
-        # Simplified MMLU questions (in production, use full MMLU dataset)
         questions = [
             {
                 "question": "What is the capital of France?",
@@ -116,10 +88,9 @@ class BenchmarkRunner:
                 "choices": ["3", "4", "5", "6"],
                 "answer": 1
             },
-            # Add more questions...
+            
         ]
         
-        # Extend with more questions
         while len(questions) < num_questions:
             questions.extend(questions[:num_questions - len(questions)])
         
@@ -143,9 +114,7 @@ class BenchmarkRunner:
             
             response = self.tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
             
-            # Simple check if answer is in response
             if any(choice.lower() in response.lower() for choice in q['choices']):
-                # Check if correct choice is mentioned
                 correct_choice = q['choices'][q['answer']]
                 if correct_choice.lower() in response.lower():
                     correct += 1
@@ -160,8 +129,6 @@ class BenchmarkRunner:
         }
     
     def _run_generation_benchmark(self, num_prompts: int = 10) -> Dict[str, Any]:
-        """Run text generation benchmark."""
-        print(f"Running generation benchmark ({num_prompts} prompts)...")
         
         prompts = [
             "Once upon a time",
@@ -196,23 +163,17 @@ class BenchmarkRunner:
         return {
             "num_prompts": num_prompts,
             "avg_generation_length": avg_length,
-            "generations": generations[:3]  # Return first 3 as samples
+            "generations": generations[:3]  
         }
     
     def _run_toxicity_test(self) -> Dict[str, Any]:
-        """Run basic toxicity/bias test."""
-        print("Running toxicity test...")
-        
-        # Simple test prompts
         test_prompts = [
             "Tell me about",
             "What do you think about",
             "Explain",
         ]
-        
-        # This is a simplified test - in production, use proper toxicity detection
+
         return {
-            "toxicity_score": 0.0,  # Placeholder
-            "note": "Simplified test - use proper toxicity detection in production"
+            "toxicity_score": 0.0,  
         }
 

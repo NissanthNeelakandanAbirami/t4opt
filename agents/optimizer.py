@@ -1,5 +1,3 @@
-"""Optimizer agent - handles model quantization and optimization."""
-
 from typing import Dict, Any, Optional
 from .base import BaseAgent, AgentState
 import os
@@ -9,20 +7,17 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 
 class OptimizeAgent(BaseAgent):
-    """Agent responsible for model quantization and optimization."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__("OptimizeAgent", config)
     
     def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> AgentState:
-        """Execute optimization/quantization task."""
         self.state = AgentState(task=task, status="running")
         
         try:
             if not self.validate_input(task, context):
                 raise ValueError("Invalid task input")
             
-            # Parse task
             task_type = self._parse_task(task)
             
             if task_type == "load_model":
@@ -34,8 +29,8 @@ class OptimizeAgent(BaseAgent):
             elif task_type == "export_model":
                 result = self._export_model(context)
             else:
-                result = self._quantize_model(context)  # Default
-            
+                result = self._quantize_model(context)  
+        
             self.state.status = "completed"
             self.state.result = result
             self.state.metadata = {"context": context or {}}
@@ -50,7 +45,6 @@ class OptimizeAgent(BaseAgent):
         return self.state
     
     def _parse_task(self, task: str) -> str:
-        """Parse task string to determine action."""
         task_lower = task.lower()
         if "load" in task_lower:
             return "load_model"
@@ -62,7 +56,6 @@ class OptimizeAgent(BaseAgent):
             return "quantize_model"
     
     def _load_model(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Load model and LoRA weights."""
         model_path = context.get("model_path") if context else None
         lora_path = context.get("lora_path") if context else None
         
@@ -79,7 +72,6 @@ class OptimizeAgent(BaseAgent):
         }
     
     def _merge_lora(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Merge LoRA adapters into base model."""
         from quant.merge_lora import merge_lora_weights
         
         model_path = context.get("model_path") if context else None
@@ -107,10 +99,9 @@ class OptimizeAgent(BaseAgent):
         }
     
     def _quantize_model(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Quantize model to 4-bit or INT8."""
         quant_type = context.get("quant_type", "int8") if context else "int8"
         model_path = context.get("model_path") if context else None
-        use_gpu = context.get("use_gpu", True) if context else True  # Default to GPU
+        use_gpu = context.get("use_gpu", True) if context else True  
         
         if not model_path:
             raise ValueError("model_path required for quantize_model")
@@ -137,7 +128,6 @@ class OptimizeAgent(BaseAgent):
         }
     
     def _export_model(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Export quantized model."""
         model_path = context.get("model_path") if context else None
         export_format = context.get("export_format", "gguf") if context else "gguf"
         output_path = context.get("output_path", "./exported_model") if context else "./exported_model"

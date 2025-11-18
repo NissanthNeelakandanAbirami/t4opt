@@ -1,5 +1,3 @@
-"""Recovery agent - handles training failures and recovery."""
-
 from typing import Dict, Any, Optional, List
 from .base import BaseAgent, AgentState
 import os
@@ -7,21 +5,18 @@ import json
 
 
 class RecoveryAgent(BaseAgent):
-    """Agent responsible for handling failures and recovery."""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__("RecoveryAgent", config)
         self.checkpoint_dir = config.get("checkpoint_dir", "./checkpoints") if config else "./checkpoints"
     
     def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> AgentState:
-        """Execute recovery task."""
         self.state = AgentState(task=task, status="running")
         
         try:
             if not self.validate_input(task, context):
                 raise ValueError("Invalid task input")
-            
-            # Parse task
+
             task_type = self._parse_task(task)
             
             if task_type == "check_checkpoint":
@@ -31,7 +26,7 @@ class RecoveryAgent(BaseAgent):
             elif task_type == "cleanup":
                 result = self._cleanup(context)
             else:
-                result = self._check_checkpoint(context)  # Default
+                result = self._check_checkpoint(context)  
             
             self.state.status = "completed"
             self.state.result = result
@@ -47,7 +42,6 @@ class RecoveryAgent(BaseAgent):
         return self.state
     
     def _parse_task(self, task: str) -> str:
-        """Parse task string to determine action."""
         task_lower = task.lower()
         if "resume" in task_lower:
             return "resume_training"
@@ -57,7 +51,6 @@ class RecoveryAgent(BaseAgent):
             return "check_checkpoint"
     
     def _check_checkpoint(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Check for available checkpoints."""
         checkpoint_dir = context.get("checkpoint_dir", self.checkpoint_dir) if context else self.checkpoint_dir
         
         self.log(f"Checking for checkpoints in {checkpoint_dir}")
@@ -67,7 +60,6 @@ class RecoveryAgent(BaseAgent):
             for item in os.listdir(checkpoint_dir):
                 checkpoint_path = os.path.join(checkpoint_dir, item)
                 if os.path.isdir(checkpoint_path):
-                    # Check if it's a valid checkpoint
                     if any(f.endswith(".pt") or f.endswith(".safetensors") for f in os.listdir(checkpoint_path)):
                         checkpoints.append({
                             "path": checkpoint_path,
@@ -87,11 +79,10 @@ class RecoveryAgent(BaseAgent):
         }
     
     def _resume_training(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Resume training from checkpoint."""
         checkpoint_path = context.get("checkpoint_path") if context else None
         
         if not checkpoint_path:
-            # Try to find latest checkpoint
+
             check_result = self._check_checkpoint(context)
             if check_result.get("latest_checkpoint"):
                 checkpoint_path = check_result["latest_checkpoint"]["path"]
@@ -107,20 +98,16 @@ class RecoveryAgent(BaseAgent):
         }
     
     def _cleanup(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Clean up temporary files and free memory."""
         import gc
         import torch
         
         self.log("Cleaning up memory and temporary files")
-        
-        # Clear CUDA cache if available
+
         if hasattr(torch.cuda, "empty_cache"):
             torch.cuda.empty_cache()
-        
-        # Force garbage collection
+
         gc.collect()
-        
-        # Clean up temp files if specified
+
         temp_dirs = context.get("temp_dirs", []) if context else []
         cleaned = []
         for temp_dir in temp_dirs:

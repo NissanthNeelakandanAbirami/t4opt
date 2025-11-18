@@ -1,5 +1,3 @@
-"""Memory management utilities for T4 GPU optimization."""
-
 import torch
 import gc
 import psutil
@@ -85,11 +83,10 @@ class MemoryManager:
     @staticmethod
     def optimize_for_t4():
         """Apply T4-specific memory optimizations."""
-        # Set memory fraction
+
         if torch.cuda.is_available():
-            torch.cuda.set_per_process_memory_fraction(0.9)  # Use 90% of GPU
+            torch.cuda.set_per_process_memory_fraction(0.9)  
         
-        # Enable memory efficient attention if available
         try:
             torch.backends.cuda.enable_flash_sdp(True)
         except:
