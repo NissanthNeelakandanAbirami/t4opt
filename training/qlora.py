@@ -133,6 +133,7 @@ class QLoRATrainer:
             "max_grad_norm": 0.3,
             "remove_unused_columns": False,
             "dataloader_pin_memory": True,  
+            "dataloader_num_workers": 2,  
             "dataloader_prefetch_factor": 2,  
             "ddp_find_unused_parameters": False,  
             "group_by_length": True,  
